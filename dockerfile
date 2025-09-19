@@ -11,8 +11,10 @@ WORKDIR /app
 EXPOSE 8080
 RUN addgroup --system spring && adduser --system spring --ingroup spring
 USER spring:spring
+
 COPY --from=build --chown=spring:spring /app/extracted/dependencies ./
 COPY --from=build --chown=spring:spring /app/extracted/spring-boot-loader ./
 COPY --from=build --chown=spring:spring /app/extracted/snapshot-dependencies ./
 COPY --from=build --chown=spring:spring /app/extracted/application ./
-ENTRYPOINT ["java", "org.springframework.boot.loader.JarLauncher"]
+
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
