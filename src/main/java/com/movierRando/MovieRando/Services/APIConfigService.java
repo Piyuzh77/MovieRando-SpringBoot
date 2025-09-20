@@ -2,36 +2,59 @@ package com.movierRando.MovieRando.Services;
 
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 
 @Configuration
 public class APIConfigService {
-    
 
     private final RestTemplate restTemplate;
 
+    // Simple in-memory cache for TMDB ID -> IMDb ID
+    private final Map<Long, String> imdbCache = new ConcurrentHashMap<>();
+
+    // Inject the global RestTemplate from AppConfig
     public APIConfigService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     @Retryable(
-        value = { ResourceAccessException.class }, 
-        maxAttempts = 3, 
-        backoff = @Backoff(delay = 1000)
-        )
-    // basically wraps the api call for retries and error handling
-    // <T> means that the method will handle any type of response (media or mediaService)
-    // Class<T> in parameter means that it will get the class info of the response and use it to map the JSON response to that class type
+        value = { ResourceAccessException.class },
+        maxAttempts = 5,
+        backoff = @Backoff(delay = 2000)
+    )
     public <T> T fetchData(String url, Class<T> responseType) {
         try {
-            // getForObject gets the data and maps the JSON Object to the DTO
-            // similarly getForEntity returns a ResponseEntity which contains more info like status code, headers, etc.
-            // internally getForObject also works similarly as our fetchData method, <T> T means to work on any type of response and return that type  of response.
             return restTemplate.getForObject(url, responseType);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Error fetching data from API: " + e.getMessage(), e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public String fetchImdbId(Long tmdbId, String mediaType, String apiKey) {
+        if (tmdbId == null) return null;
+
+        if (imdbCache.containsKey(tmdbId)) return imdbCache.get(tmdbId);
+
+        String url = "https://api.themoviedb.org/3/" + mediaType + "/" + tmdbId + "/external_ids?api_key=" + apiKey;
+        try {
+            Map<String, Object> ids = fetchData(url, Map.class);
+            if (ids != null && ids.get("imdb_id") != null) {
+                String imdbId = ids.get("imdb_id").toString();
+                imdbCache.put(tmdbId, imdbId);
+                return imdbId;
+            }
+        } catch (Exception e) {
+            // Fail silently for a single media item
+        }
+
+        return null;
     }
 }
