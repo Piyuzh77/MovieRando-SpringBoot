@@ -51,6 +51,9 @@ public class Media {
     @JsonProperty("media_type")
     private String mediaType;      // "movie" or "tv"
 
+    private String imdbId;
+    private String stremioLink;     
+
     public String getDisplayTitle() {
         return title != null ? title : name;
     }
