@@ -52,7 +52,11 @@ public class Media {
     private String mediaType;      // "movie" or "tv"
 
     private String imdbId;
+<<<<<<< HEAD
     private String stremioLink;
+=======
+    private String stremioLink;     
+>>>>>>> 4d5d508580806adc573528c7bbc9ce126cb968c6
 
     public String getDisplayTitle() {
         return title != null ? title : name;
